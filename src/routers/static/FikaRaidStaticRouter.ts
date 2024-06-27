@@ -8,6 +8,8 @@ import { IFikaRaidServerIdRequestData } from "../../models/fika/routes/raid/IFik
 import { IFikaRaidCreateRequestData } from "../../models/fika/routes/raid/create/IFikaRaidCreateRequestData";
 import { IFikaRaidJoinRequestData } from "../../models/fika/routes/raid/join/IFikaRaidJoinRequestData";
 import { IFikaRaidLeaveRequestData } from "../../models/fika/routes/raid/leave/IFikaRaidLeaveRequestData";
+import { IStartDedicatedRequest } from "../../models/fika/routes/raid/IStartDedicatedRequest";
+import { IStartDedicatedResponse } from "../../models/fika/routes/raid/IStartDedicatedResponse";
 
 @injectable()
 export class FikaRaidStaticRouter extends StaticRouter {
@@ -30,6 +32,9 @@ export class FikaRaidStaticRouter extends StaticRouter {
             }),
             new RouteAction("/fika/raid/getsettings", async (url: string, info: IFikaRaidServerIdRequestData, sessionID: string, _output: string): Promise<string> => {
                 return this.fikaRaidCallbacks.handleRaidGetSettings(url, info, sessionID);
+            }),
+            new RouteAction("/fika/raid/startdedicated", async (url: string, info: IStartDedicatedRequest, sessionID: string, _output: string): Promise<IStartDedicatedResponse> => {
+                return await this.fikaRaidCallbacks.handleRaidStartDedicated(url, info, sessionID);
             }),
         ]);
     }

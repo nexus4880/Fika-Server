@@ -11,6 +11,8 @@ import { IFikaPlayer } from "../models/fika/IFikaPlayer";
 import { IFikaRaidCreateRequestData } from "../models/fika/routes/raid/create/IFikaRaidCreateRequestData";
 
 import { FikaConfig } from "../utils/FikaConfig";
+import { FikaRaidService } from "./FikaRaidService";
+import { SptWebSocketConnectionHandler } from "@spt/servers/ws/SptWebSocketConnectionHandler";
 
 @injectable()
 export class FikaMatchService {
@@ -22,6 +24,8 @@ export class FikaMatchService {
         @inject("LocationController") protected locationController: LocationController,
         @inject("SaveServer") protected saveServer: SaveServer,
         @inject("FikaConfig") protected fikaConfig: FikaConfig,
+        @inject("FikaRaidService") protected fikaRaidService: FikaRaidService,
+        @inject("SptWebSocketConnectionHandler") protected webSocketServer: SptWebSocketConnectionHandler
     ) {
         this.matches = new Map();
         this.timeoutIntervals = new Map();
@@ -248,6 +252,35 @@ export class FikaMatchService {
         }
 
         this.matches.get(matchId).status = status;
+        this.logger.info(`Status is ${status}`);
+
+        /**
+         * If they are done loading and they are a headless client then
+         * they will send a WS event to the user who started the request
+         * which will then cause that player to join the match automatically
+         */
+        if (status.toString() == "COMPLETE") {
+            if (matchId in this.fikaRaidService.requestedSessions) {
+                this.logger.info(`${matchId} was in requestedSessions`);
+                const userToJoin = this.fikaRaidService.requestedSessions[matchId];
+                this.logger.info(`${userToJoin} is the user who requested this session`);
+                delete this.fikaRaidService.requestedSessions[matchId];
+                this.logger.info(`Deleted this entry from requestedSessions`);
+                this.webSocketServer.sendMessage(userToJoin, {
+                    type: "fikaJoinMatch",
+                    eventId: "fikaJoinMatch",
+                    matchId: matchId
+                } as any);
+
+                this.logger.info(`Told ${userToJoin} to join raid ${matchId}`);
+            }
+            else {
+                this.logger.error(`${matchId} was not in requestedSessions`);
+            }
+        }
+        else {
+            this.logger.warning(`${status.toString()} != "COMPLETE"`);
+        }
     }
 
     /**

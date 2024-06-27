@@ -8,6 +8,8 @@ import { IFikaRaidServerIdRequestData } from "../models/fika/routes/raid/IFikaRa
 import { IFikaRaidCreateRequestData } from "../models/fika/routes/raid/create/IFikaRaidCreateRequestData";
 import { IFikaRaidJoinRequestData } from "../models/fika/routes/raid/join/IFikaRaidJoinRequestData";
 import { IFikaRaidLeaveRequestData } from "../models/fika/routes/raid/leave/IFikaRaidLeaveRequestData";
+import { IStartDedicatedRequest } from "../models/fika/routes/raid/IStartDedicatedRequest";
+import { IStartDedicatedResponse } from "../models/fika/routes/raid/IStartDedicatedResponse";
 
 @injectable()
 export class FikaRaidCallbacks {
@@ -48,5 +50,10 @@ export class FikaRaidCallbacks {
     /** Handle /fika/raid/getsettings */
     public handleRaidGetSettings(_url: string, info: IFikaRaidServerIdRequestData, _sessionID: string): string {
         return this.httpResponseUtil.noBody(this.fikaRaidController.handleRaidGetSettings(info));
+    }
+
+    /** Handle /fika/raid/startdedicated */
+    public handleRaidStartDedicated(url: string, info: IStartDedicatedRequest, sessionID: string): Promise<IStartDedicatedResponse> {
+        return this.httpResponseUtil.noBody(this.fikaRaidController.handleRaidStartDedicated(sessionID, info));
     }
 }
