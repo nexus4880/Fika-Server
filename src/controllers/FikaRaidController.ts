@@ -141,7 +141,6 @@ export class FikaRaidController {
         let headlessClientWs: WebSocket | undefined = undefined;
 
         for (const headlessSessionId in this.fikaDedicatedRaidService.headlessClients) {
-
             const headlessClientInfo = this.fikaDedicatedRaidService.headlessClients[headlessSessionId];
 
             if (headlessClientInfo.state != "ready") {
@@ -185,16 +184,10 @@ export class FikaRaidController {
     }
 
     public handleRaidStatusDedicated(sessionId: string, info: IStatusDedicatedRequest): IStatusDedicatedResponse {
-        if(info.status == "ready") {
-            this.fikaDedicatedRaidService.headlessClients[sessionId] =
-            {
-                state: info.status,
-                lastPing: Date.now()
-            }
-        }
-
-        if(info.status == "inraid") {
-            delete this.fikaDedicatedRaidService[sessionId];
+        this.fikaDedicatedRaidService.headlessClients[sessionId] =
+        {
+            state: info.status,
+            lastPing: Date.now()
         }
 
         return {
