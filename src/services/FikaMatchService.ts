@@ -9,7 +9,7 @@ import { FikaMatchStatus } from "../models/enums/FikaMatchStatus";
 import { IFikaMatch } from "../models/fika/IFikaMatch";
 import { IFikaPlayer } from "../models/fika/IFikaPlayer";
 import { IFikaRaidCreateRequestData } from "../models/fika/routes/raid/create/IFikaRaidCreateRequestData";
-import { FikaRaidService } from "./FikaRaidService";
+import { FikaDedicatedRaidService } from "./FikaDedicatedRaidService";
 import { WebSocketServer } from "@spt-aki/servers/WebSocketServer";
 //import { SptWebSocketConnectionHandler } from "@spt-aki/servers/ws/SptWebSocketConnectionHandler";
 
@@ -22,7 +22,7 @@ export class FikaMatchService {
         @inject("WinstonLogger") protected logger: ILogger,
         @inject("LocationController") protected locationController: LocationController,
         @inject("SaveServer") protected saveServer: SaveServer,
-        @inject("FikaRaidService") protected fikaRaidService: FikaRaidService,
+        @inject("FikaDedicatedRaidService") protected fikaDedicatedRaidService: FikaDedicatedRaidService,
         @inject("WebSocketServer") protected webSocketServer: WebSocketServer,
     ) {
         this.matches = new Map();
@@ -255,11 +255,11 @@ export class FikaMatchService {
          * which will then cause that player to join the match automatically
          */
         if (status.toString() == "COMPLETE") {
-            if (matchId in this.fikaRaidService.requestedSessions) {
+            if (matchId in this.fikaDedicatedRaidService.requestedSessions) {
                 this.logger.info(`${matchId} was in requestedSessions`);
-                const userToJoin = this.fikaRaidService.requestedSessions[matchId];
+                const userToJoin = this.fikaDedicatedRaidService.requestedSessions[matchId];
                 this.logger.info(`${userToJoin} is the user who requested this session`);
-                delete this.fikaRaidService.requestedSessions[matchId];
+                delete this.fikaDedicatedRaidService.requestedSessions[matchId];
                 this.logger.info(`Deleted this entry from requestedSessions`);
 
                 /*
