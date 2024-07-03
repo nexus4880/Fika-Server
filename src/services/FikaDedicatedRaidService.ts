@@ -21,7 +21,7 @@ export class FikaDedicatedRaidService {
             for (const headlessClientSessionId in this.dedicatedClients) {
                 const headlessClientLastPing = this.dedicatedClients[headlessClientSessionId].lastPing;
 
-                if (currentTime - headlessClientLastPing > 6000) {
+                if (currentTime - headlessClientLastPing > 16000) {
                     logger.info(`Dedicated client removed: ${headlessClientSessionId}`);
                     delete this.dedicatedClients[headlessClientSessionId];
                 }
