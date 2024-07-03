@@ -11,11 +11,26 @@ import { IFikaRaidLeaveRequestData } from "../models/fika/routes/raid/leave/IFik
 import { IFikaRaidSpawnpointResponse } from "../models/fika/routes/raid/spawnpoint/IFikaRaidSpawnpointResponse";
 import { IFikaRaidSettingsResponse } from "../models/fika/routes/raid/getsettings/IFikaRaidSettingsResponse";
 import { FikaMatchService } from "../services/FikaMatchService";
+import { IStartDedicatedRequest } from "../models/fika/routes/raid/IStartDedicatedRequest";
+import { SaveServer } from "@spt-aki/servers/SaveServer";
+//import { SptWebSocketConnectionHandler } from "@spt-aki/servers/ws/SptWebSocketConnectionHandler";
+import { IStartDedicatedResponse } from "../models/fika/routes/raid/IStartDedicatedResponse";
+import { FikaRaidService } from "../services/FikaRaidService";
+import { ILogger } from "@spt-aki/models/spt/utils/ILogger";
+import { WebSocketServer } from "@spt-aki/servers/WebSocketServer";
+import { IStatusDedicatedRequest } from "../models/fika/routes/raid/IStatusDedicatedRequest";
+import { IStatusDedicatedResponse } from "../models/fika/routes/raid/IStatusDedicatedResponse";
 
 @injectable()
 export class FikaRaidController {
-    constructor(@inject("FikaMatchService") protected fikaMatchService: FikaMatchService) {
-        // empty
+    constructor(
+        @inject("FikaMatchService") protected fikaMatchService: FikaMatchService,
+        @inject("SaveServer") protected saveServer: SaveServer,
+        @inject("WebSocketServer") protected webSocketServer: WebSocketServer,
+        @inject("FikaRaidService") protected fikaRaidService: FikaRaidService,
+        @inject("WinstonLogger") protected logger: ILogger,
+    ) {
+        // Do nothing
     }
 
     /**
@@ -104,5 +119,87 @@ export class FikaRaidController {
             metabolismDisabled: match.raidConfig.metabolismDisabled,
             playersSpawnPlace: match.raidConfig.playersSpawnPlace
         };
+    }
+
+    /** Handle /fika/raid/startdedicated */
+    handleRaidStartDedicated(sessionID: string, info: IStartDedicatedRequest): IStartDedicatedResponse {
+        if (Object.keys(this.fikaRaidService.headlessClients).length == 0) {
+            return {
+                matchId: null,
+                error: "No headless clients available"
+            };
+        }
+
+        if (sessionID in this.fikaRaidService.headlessClients) {
+            return {
+                matchId: null,
+                error: "A headless client is trying to use a headless client?"
+            };
+        }
+
+        let headlessClient: string | undefined = undefined;
+        let headlessClientWs: WebSocket | undefined = undefined;
+
+        for (const headlessSessionId in this.fikaRaidService.headlessClients) {
+
+            const headlessClientInfo = this.fikaRaidService.headlessClients[headlessSessionId];
+
+            if (headlessClientInfo.state != "ready") {
+                continue;
+            }
+
+            headlessClientWs = this.webSocketServer.getSessionWebSocket(headlessSessionId);
+
+            if(!headlessClientWs) {
+                continue;
+            }
+
+            headlessClient = headlessSessionId;
+            break;
+        }
+
+        if (!headlessClient) {
+            return {
+                matchId: null,
+                error: "No headless clients available at this time"
+            };
+        }
+
+        this.fikaRaidService.requestedSessions[headlessClient] = sessionID;
+
+        headlessClientWs.send(
+            JSON.stringify(
+            {
+                type: "fikaHeadlessStartRaid",
+                ...info
+            }
+        ));
+
+        this.logger.info(`Sent WS to ${headlessClient}`);
+
+        return {
+            // This really isn't required, I just want to make sure on the client
+            matchId: headlessClient,
+            error: null
+        }
+    }
+
+    public handleRaidStatusDedicated(sessionId: string, info: IStatusDedicatedRequest): IStatusDedicatedResponse {
+        if(info.status == "ready") {
+            this.fikaRaidService.headlessClients[sessionId] =
+            {
+                state: info.status,
+                lastPing: Date.now()
+            }
+        }
+
+        if(info.status == "inraid") {
+            delete this.fikaRaidService[sessionId];
+        }
+
+        return {
+            sessionId: info.sessionId,
+            status: info.status
+        }
     }
 }

@@ -9,6 +9,9 @@ import { FikaMatchStatus } from "../models/enums/FikaMatchStatus";
 import { IFikaMatch } from "../models/fika/IFikaMatch";
 import { IFikaPlayer } from "../models/fika/IFikaPlayer";
 import { IFikaRaidCreateRequestData } from "../models/fika/routes/raid/create/IFikaRaidCreateRequestData";
+import { FikaRaidService } from "./FikaRaidService";
+import { WebSocketServer } from "@spt-aki/servers/WebSocketServer";
+//import { SptWebSocketConnectionHandler } from "@spt-aki/servers/ws/SptWebSocketConnectionHandler";
 
 @injectable()
 export class FikaMatchService {
@@ -19,6 +22,8 @@ export class FikaMatchService {
         @inject("WinstonLogger") protected logger: ILogger,
         @inject("LocationController") protected locationController: LocationController,
         @inject("SaveServer") protected saveServer: SaveServer,
+        @inject("FikaRaidService") protected fikaRaidService: FikaRaidService,
+        @inject("WebSocketServer") protected webSocketServer: WebSocketServer,
     ) {
         this.matches = new Map();
         this.timeoutIntervals = new Map();
@@ -241,6 +246,48 @@ export class FikaMatchService {
         }
 
         this.matches.get(matchId).status = status;
+
+        this.logger.info(`Status is ${status}`);
+
+        /**
+         * If they are done loading and they are a headless client then
+         * they will send a WS event to the user who started the request
+         * which will then cause that player to join the match automatically
+         */
+        if (status.toString() == "COMPLETE") {
+            if (matchId in this.fikaRaidService.requestedSessions) {
+                this.logger.info(`${matchId} was in requestedSessions`);
+                const userToJoin = this.fikaRaidService.requestedSessions[matchId];
+                this.logger.info(`${userToJoin} is the user who requested this session`);
+                delete this.fikaRaidService.requestedSessions[matchId];
+                this.logger.info(`Deleted this entry from requestedSessions`);
+
+                /*
+                this.webSocketServer.sendMessage(userToJoin, {
+                    type: "fikaJoinMatch",
+                    eventId: "fikaJoinMatch",
+                    matchId: matchId
+                } as any);
+                 */
+
+                const webSocket = this.webSocketServer.getSessionWebSocket(userToJoin);
+
+                webSocket.send(JSON.stringify(
+                    {
+                        type: "fikaJoinMatch",
+                        matchId: matchId
+                    }
+                ));
+
+                this.logger.info(`Told ${userToJoin} to join raid ${matchId}`);
+            }
+            else {
+                this.logger.error(`${matchId} was not in requestedSessions`);
+            }
+        }
+        else {
+            this.logger.warning(`${status.toString()} != "COMPLETE"`);
+        }
     }
 
     /**
