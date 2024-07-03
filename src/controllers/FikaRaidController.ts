@@ -11,15 +11,15 @@ import { IFikaRaidLeaveRequestData } from "../models/fika/routes/raid/leave/IFik
 import { IFikaRaidSpawnpointResponse } from "../models/fika/routes/raid/spawnpoint/IFikaRaidSpawnpointResponse";
 import { IFikaRaidSettingsResponse } from "../models/fika/routes/raid/getsettings/IFikaRaidSettingsResponse";
 import { FikaMatchService } from "../services/FikaMatchService";
-import { IStartDedicatedRequest } from "../models/fika/routes/raid/dedicated/IStartDedicatedRequest";
 import { SaveServer } from "@spt-aki/servers/SaveServer";
-//import { SptWebSocketConnectionHandler } from "@spt-aki/servers/ws/SptWebSocketConnectionHandler";
-import { IStartDedicatedResponse } from "../models/fika/routes/raid/dedicated/IStartDedicatedResponse";
 import { FikaDedicatedRaidService } from "../services/FikaDedicatedRaidService";
 import { ILogger } from "@spt-aki/models/spt/utils/ILogger";
 import { WebSocketServer } from "@spt-aki/servers/WebSocketServer";
+import { IStartDedicatedRequest } from "../models/fika/routes/raid/dedicated/IStartDedicatedRequest";
+import { IStartDedicatedResponse } from "../models/fika/routes/raid/dedicated/IStartDedicatedResponse";
 import { IStatusDedicatedRequest } from "../models/fika/routes/raid/dedicated/IStatusDedicatedRequest";
 import { IStatusDedicatedResponse } from "../models/fika/routes/raid/dedicated/IStatusDedicatedResponse";
+
 
 @injectable()
 export class FikaRaidController {
@@ -121,70 +121,71 @@ export class FikaRaidController {
         };
     }
 
-    /** Handle /fika/raid/startdedicated */
+    /** Handle /fika/raid/dedicated/start */
     handleRaidStartDedicated(sessionID: string, info: IStartDedicatedRequest): IStartDedicatedResponse {
-        if (Object.keys(this.fikaDedicatedRaidService.headlessClients).length == 0) {
+        if (Object.keys(this.fikaDedicatedRaidService.dedicatedClients).length == 0) {
             return {
                 matchId: null,
-                error: "No headless clients available"
+                error: "No dedicated clients available"
             };
         }
 
-        if (sessionID in this.fikaDedicatedRaidService.headlessClients) {
+        if (sessionID in this.fikaDedicatedRaidService.dedicatedClients) {
             return {
                 matchId: null,
-                error: "A headless client is trying to use a headless client?"
+                error: "A dedicated client is trying to use a dedicated client?"
             };
         }
 
-        let headlessClient: string | undefined = undefined;
-        let headlessClientWs: WebSocket | undefined = undefined;
+        let dedicatedClient: string | undefined = undefined;
+        let dedicatedClientWs: WebSocket | undefined = undefined;
 
-        for (const headlessSessionId in this.fikaDedicatedRaidService.headlessClients) {
-            const headlessClientInfo = this.fikaDedicatedRaidService.headlessClients[headlessSessionId];
+        for (const dedicatedSessionId in this.fikaDedicatedRaidService.dedicatedClients) {
+            const dedicatedClientInfo = this.fikaDedicatedRaidService.dedicatedClients[dedicatedSessionId];
 
-            if (headlessClientInfo.state != "ready") {
+            if (dedicatedClientInfo.state != "ready") {
                 continue;
             }
 
-            headlessClientWs = this.webSocketServer.getSessionWebSocket(headlessSessionId);
+            dedicatedClientWs = this.webSocketServer.getSessionWebSocket(dedicatedSessionId);
 
-            if(!headlessClientWs) {
+            if(!dedicatedClientWs) {
                 continue;
             }
 
-            headlessClient = headlessSessionId;
+            dedicatedClient = dedicatedSessionId;
             break;
         }
 
-        if (!headlessClient) {
+        if (!dedicatedClient) {
             return {
                 matchId: null,
-                error: "No headless clients available at this time"
+                error: "No dedicated clients available at this time"
             };
         }
 
-        this.fikaDedicatedRaidService.requestedSessions[headlessClient] = sessionID;
+        this.fikaDedicatedRaidService.requestedSessions[dedicatedClient] = sessionID;
 
-        headlessClientWs.send(
+        dedicatedClientWs.send(
             JSON.stringify(
             {
-                type: "fikaHeadlessStartRaid",
+                type: "fikaDedicatedStartRaid",
                 ...info
             }
         ));
 
-        this.logger.info(`Sent WS to ${headlessClient}`);
+        this.logger.info(`Sent WS to ${dedicatedClient}`);
 
         return {
             // This really isn't required, I just want to make sure on the client
-            matchId: headlessClient,
+            matchId: dedicatedClient,
             error: null
         }
     }
 
+    /** Handle /fika/raid/dedicated/status */
     public handleRaidStatusDedicated(sessionId: string, info: IStatusDedicatedRequest): IStatusDedicatedResponse {
-        this.fikaDedicatedRaidService.headlessClients[sessionId] =
+        this.fikaDedicatedRaidService.dedicatedClients[sessionId] =
         {
             state: info.status,
             lastPing: Date.now()

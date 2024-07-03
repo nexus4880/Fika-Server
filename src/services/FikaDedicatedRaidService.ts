@@ -1,29 +1,29 @@
 import { ILogger } from "@spt-aki/models/spt/utils/ILogger";
 import { inject, injectable } from "tsyringe";
-import { IHeadlessClientInfo } from "../models/fika/routes/raid/dedicated/IHeadlessClientInfo";
+import { IDedicatedClientInfo } from "../models/fika/routes/raid/dedicated/IDedicatedClientInfo";
 import { WebSocketServer } from "@spt-aki/servers/WebSocketServer";
 
 @injectable()
 export class FikaDedicatedRaidService {
-    public headlessClients: Record<string, IHeadlessClientInfo>;
+    public dedicatedClients: Record<string, IDedicatedClientInfo>;
     public requestedSessions: Record<string, string>;
 
     constructor(
         @inject("WinstonLogger") protected logger: ILogger,
         @inject("WebSocketServer") protected webSocketServer: WebSocketServer,
     ) {
-        this.headlessClients = {};
+        this.dedicatedClients = {};
         this.requestedSessions = {};
 
         setInterval(() => {
             const currentTime = Date.now();
 
-            for (const headlessClientSessionId in this.headlessClients) {
-                const headlessClientLastPing = this.headlessClients[headlessClientSessionId].lastPing;
+            for (const headlessClientSessionId in this.dedicatedClients) {
+                const headlessClientLastPing = this.dedicatedClients[headlessClientSessionId].lastPing;
 
                 if (currentTime - headlessClientLastPing > 6000) {
-                    logger.info(`Headless client removed: ${headlessClientSessionId}`);
-                    delete this.headlessClients[headlessClientSessionId];
+                    logger.info(`Dedicated client removed: ${headlessClientSessionId}`);
+                    delete this.dedicatedClients[headlessClientSessionId];
                 }
             }
         }, 5000);
@@ -38,7 +38,7 @@ export class FikaDedicatedRaidService {
 
             webSocket.send(JSON.stringify(
                 {
-                    type: "fikaJoinMatch",
+                    type: "fikaDedicatedJoinMatch",
                     matchId: matchId
                 }
             ));

@@ -1,4 +1,4 @@
-export interface IHeadlessClientInfo {
+export interface IDedicatedClientInfo {
     state: string;
     lastPing: number;
 }
