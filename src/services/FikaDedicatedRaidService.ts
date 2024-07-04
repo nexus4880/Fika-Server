@@ -18,12 +18,12 @@ export class FikaDedicatedRaidService {
         setInterval(() => {
             const currentTime = Date.now();
 
-            for (const headlessClientSessionId in this.dedicatedClients) {
-                const headlessClientLastPing = this.dedicatedClients[headlessClientSessionId].lastPing;
+            for (const dedicatedClientSessionId in this.dedicatedClients) {
+                const dedicatedClientLastPing = this.dedicatedClients[dedicatedClientSessionId].lastPing;
 
-                if (currentTime - headlessClientLastPing > 16000) {
-                    logger.info(`Dedicated client removed: ${headlessClientSessionId}`);
-                    delete this.dedicatedClients[headlessClientSessionId];
+                if (currentTime - dedicatedClientLastPing > 16000) {
+                    delete this.dedicatedClients[dedicatedClientSessionId];
+                    logger.info(`Dedicated client removed: ${dedicatedClientSessionId}`);
                 }
             }
         }, 5000);
