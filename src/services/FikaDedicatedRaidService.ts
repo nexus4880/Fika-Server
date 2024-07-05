@@ -7,6 +7,8 @@ import { WebSocketServer } from "@spt-aki/servers/WebSocketServer";
 export class FikaDedicatedRaidService {
     public dedicatedClients: Record<string, IDedicatedClientInfo>;
     public requestedSessions: Record<string, string>;
+    public onNoDedicatedClientAvailable?: () => void;
+    public onDedicatedClientAvailable?: () => void;
 
     constructor(
         @inject("WinstonLogger") protected logger: ILogger,
@@ -25,6 +27,11 @@ export class FikaDedicatedRaidService {
                     delete this.dedicatedClients[dedicatedClientSessionId];
                     logger.info(`Dedicated client removed: ${dedicatedClientSessionId}`);
                 }
+
+                if(!this.isDedicatedClientAvailable()) {
+                    this.onNoDedicatedClientAvailable();
+                }
+
             }
         }, 5000);
     }
@@ -45,5 +52,9 @@ export class FikaDedicatedRaidService {
 
             this.logger.info(`Told ${userToJoin} to join raid ${matchId}`);
         }
+    }
+
+    public isDedicatedClientAvailable(): boolean {
+        return Object.keys(this.dedicatedClients).length > 0;
     }
 }
