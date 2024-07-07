@@ -187,9 +187,10 @@ export class FikaRaidController {
     public handleRaidStatusDedicated(sessionId: string, info: IStatusDedicatedRequest): IStatusDedicatedResponse {
 
         if(info.status == "ready" && !this.fikaDedicatedRaidService.isDedicatedClientAvailable()) {
-            this.fikaDedicatedRaidService.onDedicatedClientAvailable();
+            if(this.fikaDedicatedRaidService.onDedicatedClientAvailable) {
+                this.fikaDedicatedRaidService.onDedicatedClientAvailable();
+            }
         }
-
 
         this.fikaDedicatedRaidService.dedicatedClients[sessionId] =
         {

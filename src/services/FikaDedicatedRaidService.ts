@@ -29,9 +29,10 @@ export class FikaDedicatedRaidService {
                 }
 
                 if(!this.isDedicatedClientAvailable()) {
-                    this.onNoDedicatedClientAvailable();
+                    if(this.onNoDedicatedClientAvailable) {
+                        this.onNoDedicatedClientAvailable();
+                    }
                 }
-
             }
         }, 5000);
     }
