@@ -235,7 +235,6 @@ export class FikaMatchService {
      */
     public endMatch(matchId: string, reason: FikaMatchEndSessionMessage): void {
         this.logger.info(`Coop session ${matchId} has ended: ${reason}`);
-        this.fikaInsuranceService.onMatchEnd(matchId);
         this.deleteMatch(matchId);
     }
 
