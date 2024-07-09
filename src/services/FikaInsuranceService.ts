@@ -110,31 +110,23 @@ export class FikaInsuranceService {
 
     public removeItemsFromInsurance(sessionID: string, ids: string[]) {
         if (!this.insuranceService.insuranceExists(sessionID)) {
-            this.logger.warning("No insurance found");
-        }        
-        const insurances = this.insuranceService.getInsurance(sessionID);
-        for (const tid in insurances) {
-            let insuredItems = insurances[tid];
-            for (const idToRemove of ids) {
-                const insuredItemIndex = insuredItems.findIndex(i => i._id == idToRemove);
-                if (insuredItemIndex != -1) {
-                    const itemToRemove = insuredItems[insuredItemIndex];
-                    this.logger.info(`Found ${itemToRemove._id} which will be removed`);
-                    insuredItems.splice(insuredItemIndex, 1);
-                }
-                else {
-                    this.logger.error(`Could not find ${idToRemove}`);
-                }
+            this.logger.warning(`No insurance found for ${sessionID}`);
+        }
 
-                if (insuredItems.length == 0) {
-                    this.logger.info("No more insured items left, deleting this entry");
-                    delete insurances[tid];
-                }
-                else {
-                    insurances[tid] = insuredItems;
-                    this.logger.info("Updated existing list of insured items");
-                }
+        const profile = this.saveServer.getProfile(sessionID);
+        if (profile.insurance && profile.insurance.length > 0) {
+            this.logger.info(`${profile.insurance.length} insurances on ${sessionID}`);
+            for (const insurance of profile.insurance) {
+                const enteredCount = insurance.items.length;
+                insurance.items = insurance.items.filter(i => !ids.includes(i._id));
+                const exitCount = insurance.items.length;
+                this.logger.error(`${sessionID} changed insurances length from ${enteredCount} -> ${exitCount}`);
             }
+
+            profile.insurance = profile.insurance.filter(i => i.items.length > 0);
+        }
+        else {
+            this.logger.error(`No insurances available on ${sessionID}`);
         }
     }
 }
