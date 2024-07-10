@@ -62,6 +62,7 @@ export class FikaDialogueController {
                     Level: profile.Info.Level,
                     Side: profile.Info.Side,
                     MemberCategory: profile.Info.MemberCategory,
+                    SelectedMemberCategory: profile.Info.MemberCategory,
                 },
             });
         }
